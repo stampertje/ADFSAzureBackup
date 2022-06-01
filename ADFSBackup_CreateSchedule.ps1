@@ -17,6 +17,12 @@ param (
     [string]
     $BackupTargetFolder,
 
+    # ADFS Sercice account is used to access the DKM container in AD.
+    # Should be in the format <Domain>\<username> (e.g. contoso\gmsa_adfs$)
+    [Parameter(Mandatory=$true)]
+    [string]
+    $ADFSServiceAccount,
+
     [Parameter()]
     [int]
     $VersionsToKeep = 1,
@@ -147,7 +153,7 @@ $BackupScript = {
     $BackupTargetFolder
     $EncryptionPw)
 
-  $BackupJob = Start-Job {Backup-ADFS -StorageType $args[0] -StoragePath $args[1] -EncryptionPassword $args[2]} `
+  $BackupJob = Start-Job {Backup-ADFS -StorageType $args[0] -StoragePath $args[1] -EncryptionPassword $args[2] -BackupDKM} `
     -ArgumentList $BackupArgs `
     -InitializationScript $init
   
@@ -218,13 +224,16 @@ $action = New-ScheduledTaskAction -Execute 'Powershell.exe' `
     -Argument $BackupTargetFolder\ADFSBackup.ps1
 $trigger =  New-ScheduledTaskTrigger -Daily -At 1am
 
+$TaskPrincipal = New-ScheduledTaskPrincipal -LogonType Password -UserId $ADFSServiceAccount
+
 If (Get-ScheduledTask | Where-Object {$_.URI -ilike "*$ScheduledTaskName*"})
 {
 
     Set-ScheduledTask `
         -Action $action `
         -Trigger $trigger `
-        -TaskName $ScheduledTaskName
+        -TaskName $ScheduledTaskName `
+        -Principal $TaskPrincipal
 
 } else {
 
@@ -233,6 +242,6 @@ If (Get-ScheduledTask | Where-Object {$_.URI -ilike "*$ScheduledTaskName*"})
         -Trigger $trigger `
         -TaskName $ScheduledTaskName `
         -Description "ADFS RRT Azure Backup" `
-        -User "NT Authority\SYSTEM"
+        -Principal $TaskPrincipal
 }
 #endregion create scheduled task

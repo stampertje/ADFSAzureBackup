@@ -85,6 +85,7 @@ The script needs a whole bunch of parameters:
 - appid -> The application id of the service principal that was outputed from the first script
 - thumbprint -> The thumbprint of the selfsigned certificate
 - BackupTargetFolder -> The path to a directory on the local filesystem to store the backup files
+- ADFSServiceAccount -> The name of the service account (or gmsa) that runs the ADFS service. It is used to backup the DKM. This should be in the format of <domain>\<accountname> (e.g. contoso\gmsa_adfs$) (Don't forget the $ for a GMSA).
 - storageaccount -> The name of the storage account (outputed by the CreateStorageAccount script)
 - rgname -> The name of the resource group for the storage account
 - KeyVault -> The name of the Key Vault (outputed by the CreateKeyVault script)

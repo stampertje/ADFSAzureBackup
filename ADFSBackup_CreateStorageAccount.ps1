@@ -22,6 +22,11 @@ param (
     $subnetid
 )
 
+If ($null -eq (Get-azcontext))
+{
+  'Not connected to Azure. Please run Login-AzAccount' | Write-Error -ErrorAction Stop
+}
+
 If ($null -eq (get-AzResourceGroup -ResourceGroupName $rgname))
 {
   try {
@@ -59,30 +64,49 @@ if (-not($subnetid -eq ""))
   $netrules += "-VirtualNetworkRule", "(@{VirtualNetworkResourceId=`"$subnetid`";Action=`"allow`"})"
 }
 
-Invoke-Expression "& Update-AzStorageAccountNetworkRuleSet $netrules"
+try {
+  Invoke-Expression "& Update-AzStorageAccountNetworkRuleSet $netrules"  
+}
+catch {
+  'Failed to set network ruleset: ' -f $_.Exception.Message | Write-Error
+  throw
+}
+
 
 if (-not($SAFW_CIDR -eq ""))
 {
   $SAFW_CIDR = $SAFW_CIDR.Replace("/32","")
 
-  Add-AzStorageAccountNetworkRule `
+  try {
+    Add-AzStorageAccountNetworkRule `
     -ResourceGroupName $rgname `
     -AccountName $saname `
     -IPAddressOrRange $SAFW_CIDR
+  }
+  catch {
+    'Failed to add CIDR to storage firewall allowlist: ' -f $_.Exception.Message | Write-Error
+    throw
+  }
 }
 
 #endregion storageaccount_firewall_rules
 
 if ($appid -ne "")
 {
-  # grant permissions to SP
-  New-AzRoleAssignment -RoleDefinitionName 'Storage Blob Data Contributor' `
-    -ApplicationId $appid `
-    -Scope $newsa.Id
+  try {
+    # grant permissions to SP
+    New-AzRoleAssignment -RoleDefinitionName 'Storage Blob Data Contributor' `
+      -ApplicationId $appid `
+      -Scope $newsa.Id
 
-  New-AzRoleAssignment -RoleDefinitionName 'Reader and Data Access' `
-  -ApplicationId $appid `
-  -Scope $newsa.Id
+    New-AzRoleAssignment -RoleDefinitionName 'Reader and Data Access' `
+    -ApplicationId $appid `
+    -Scope $newsa.Id    
+  }
+  catch {
+    'Failed to set permissions on storage account: ' -f $_.Exception.Message | Write-Error
+    throw
+  }
 }
 
 Write-host "Use this storage account in the script: " $newsa.StorageAccountName -ForegroundColor Green

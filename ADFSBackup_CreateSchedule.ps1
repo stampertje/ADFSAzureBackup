@@ -162,18 +162,30 @@ $BackupScript = {
   #endregion ExecuteBackup
 
   #region UploadToStorageAccount
-  $storageAccountObject = Get-AzStorageAccount -ResourceGroupName $rgname -Name $storageaccount
-  $storageContext = $storageAccountObject.Context
-
-  $ContainerName = 'adfsbackup'
-  if ($null -eq (Get-azstoragecontainer -name $containername -context $storageContext -ErrorAction SilentlyContinue))
-  {
-    New-AzStorageContainer -Name $ContainerName -Context $storageContext -Permission Blob
+  try {
+    $storageAccountObject = Get-AzStorageAccount -ResourceGroupName $rgname -Name $storageaccount
+    $storageContext = $storageAccountObject.Context      
   }
-
+  catch {
+    'Failed to get storage context for upload: ' -f $_.exception.message | write-error -ErrorAction Stop
+    throw
+  }
+  
   $NewestBackup = Get-ChildItem $BackupTargetFolder -Directory `
     | Sort-Object lastwritetime -Descending `
     | Select-Object -First 1
+
+  $ContainerName = $NewestBackup.Name
+  if ($null -eq (Get-azstoragecontainer -name $containername -context $storageContext -ErrorAction SilentlyContinue))
+  {
+    try {
+      New-AzStorageContainer -Name $ContainerName -Context $storageContext -Permission Blob 
+    }
+    catch {
+      'Failed to create container in storage account: ' -f $_.exception.message | write-error -ErrorAction Stop
+      throw
+    }
+  }
 
   Foreach ($file in (Get-ChildItem $NewestBackup.fullname))
   {
@@ -187,8 +199,28 @@ $BackupScript = {
     }
     catch {
       'failed to upload file: ' -f $_exception.message | write-error -erroraction Stop
+      throw
     }
 
+    if (-not($null -eq $versionsToKeep))
+    {
+      # Clean up old backups
+      $ExistingBackups = Get-azstoragecontainer -Context $storageContext | sort-object LastModified
+      If ($ExistingBackups.count -gt $VersionsToKeep)
+      { 
+        $containersToDelete = ($ExistingBackups.count - $versionsToKeep)
+
+        For ($i=0;$i -lt $containersToDelete;$i++)
+        {
+          try {
+            Remove-AzStorageContainer -name $ExistingBackups[$i].Name -Context $storageContext -Force
+          }
+          catch {
+            'Failed to delete container: ' -f $_.exception.message | write-error
+          }
+        }
+      }
+    }
   }
   #endregion UploadToStorageAccount
 }
@@ -198,7 +230,10 @@ $BackupScript = {
 #region write backupscript to disk
 If (Test-Path $BackupTargetFolder\ADFSBackup.ps1)
 {
-    Remove-Item $BackupTargetFolder\ADFSBackup.ps1 -Force
+  $now = get-date -format yyyyMMddhhmm
+  $newfilename = "ADFSBackup_" + $now + ".bak"
+  Move-Item -Path $BackupTargetFolder\ADFSBackup.ps1 -Destination $BackupTargetFolder\$newfilename  
+  #Remove-Item $BackupTargetFolder\ADFSBackup.ps1 -Force
 }
 
 $BackupScript = $BackupScript.ToString().replace("~TargetFolderPlaceholder~",$BackupTargetFolder)
@@ -224,24 +259,34 @@ $action = New-ScheduledTaskAction -Execute 'Powershell.exe' `
     -Argument $BackupTargetFolder\ADFSBackup.ps1
 $trigger =  New-ScheduledTaskTrigger -Daily -At 1am
 
-$TaskPrincipal = New-ScheduledTaskPrincipal -LogonType Password -UserId $ADFSServiceAccount
+$TaskPrincipal = New-ScheduledTaskPrincipal -LogonType Password -UserId $ADFSServiceAccount -RunLevel Highest
 
 If (Get-ScheduledTask | Where-Object {$_.URI -ilike "*$ScheduledTaskName*"})
 {
-
+  try {
     Set-ScheduledTask `
-        -Action $action `
-        -Trigger $trigger `
-        -TaskName $ScheduledTaskName `
-        -Principal $TaskPrincipal
-
+      -Action $action `
+      -Trigger $trigger `
+      -TaskName $ScheduledTaskName `
+      -Principal $TaskPrincipal
+  }
+  catch {
+    'Failed to update existing scheduled task: ' -f $_.exception.message | write-error
+    throw
+  }
+    
 } else {
-
+  try {
     Register-ScheduledTask `
-        -Action $action `
-        -Trigger $trigger `
-        -TaskName $ScheduledTaskName `
-        -Description "ADFS RRT Azure Backup" `
-        -Principal $TaskPrincipal
+      -Action $action `
+      -Trigger $trigger `
+      -TaskName $ScheduledTaskName `
+      -Description "ADFS RRT Azure Backup" `
+      -Principal $TaskPrincipal
+  }
+  catch {
+    'Failed to register new scheduled task: ' -f $_.exception.message | write-error
+    throw
+  }
 }
 #endregion create scheduled task

@@ -44,7 +44,8 @@ try {
   $newsa = New-AzStorageAccount -Name $saname `
     -Location $location `
     -ResourceGroupName $rgname `
-    -Skuname Standard_LRS
+    -Skuname Standard_LRS `
+    -AllowBlobPublicAccess $false
 }
 catch {
   'Failed to create storage account: ' -f $_.Exception.Message | Write-Error -ErrorAction Stop

@@ -261,14 +261,29 @@ $trigger =  New-ScheduledTaskTrigger -Daily -At 1am
 
 $TaskPrincipal = New-ScheduledTaskPrincipal -LogonType Password -UserId $ADFSServiceAccount -RunLevel Highest
 
+$TaskProperties = @{
+  Action = $action
+  Trigger = $trigger
+  TaskName = $ScheduledTaskName
+}
+
+if (-not($ADFSServiceAccount -like "*$")) # If not a GMSA
+{
+  $svcaccpassword = Read-host "Please enter service account password: " | ConvertTo-SecureString -AsPlainText -Force
+  $TaskProperties += @{
+    user = $ADFSServiceAccount
+    Password = $svcaccpassword
+  }
+} else {
+  $TaskProperties += @{
+    Principal = $TaskPrincipal
+  }
+}
+
 If (Get-ScheduledTask | Where-Object {$_.URI -ilike "*$ScheduledTaskName*"})
 {
   try {
-    Set-ScheduledTask `
-      -Action $action `
-      -Trigger $trigger `
-      -TaskName $ScheduledTaskName `
-      -Principal $TaskPrincipal
+    Set-ScheduledTask @TaskProperties
   }
   catch {
     'Failed to update existing scheduled task: ' -f $_.exception.message | write-error
@@ -277,12 +292,8 @@ If (Get-ScheduledTask | Where-Object {$_.URI -ilike "*$ScheduledTaskName*"})
     
 } else {
   try {
-    Register-ScheduledTask `
-      -Action $action `
-      -Trigger $trigger `
-      -TaskName $ScheduledTaskName `
-      -Description "ADFS RRT Azure Backup" `
-      -Principal $TaskPrincipal
+    $TaskProperties += @{Description="ADFS RRT Azure Backup"}
+    Register-ScheduledTask @TaskProperties
   }
   catch {
     'Failed to register new scheduled task: ' -f $_.exception.message | write-error

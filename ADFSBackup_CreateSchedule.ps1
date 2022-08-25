@@ -269,10 +269,14 @@ $TaskProperties = @{
 
 if (-not($ADFSServiceAccount -like "*$")) # If not a GMSA
 {
-  $svcaccpassword = Read-host "Please enter service account password: " | ConvertTo-SecureString -AsPlainText -Force
+  $SecurePassword = Read-host "Please enter service account password: " -AsSecureString
+  # Task creation expect standard string
+  $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecurePassword)
+  $svcaccpassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+
   $TaskProperties += @{
     user = $ADFSServiceAccount
-    Password = $svcaccpassword
+    password = $svcaccpassword
   }
 } else {
   $TaskProperties += @{

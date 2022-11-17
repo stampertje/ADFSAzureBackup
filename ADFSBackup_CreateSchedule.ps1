@@ -175,7 +175,8 @@ $BackupScript = {
     | Sort-Object lastwritetime -Descending `
     | Select-Object -First 1
 
-  $ContainerName = $NewestBackup.Name
+  $ContainerName = $NewestBackup.Name.ToLower()
+
   if ($null -eq (Get-azstoragecontainer -name $containername -context $storageContext -ErrorAction SilentlyContinue))
   {
     try {

@@ -36,6 +36,9 @@ The ADFSBackup_CreateKeyVault.ps1 will create a KeyVault (obviously) and limit n
 First you need to connect to Azure:
 >Connect-AzAccount -TenantID \<yourtenant>
 
+Select the correct subscription to deploy to:
+>Select-AzSubscription -SubscriptionID \<subscription GUID>
+
 Download the ADFSBackup_CreateKeyVault.ps1 script and execute it with the required parameters:
 
 - rgname -> Resource Group

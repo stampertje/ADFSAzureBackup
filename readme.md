@@ -34,7 +34,7 @@ For this script you will need to install some Azure Powershell modules.
 The ADFSBackup_CreateKeyVault.ps1 will create a KeyVault (obviously) and limit network communications to a specified CIDR or vNet (or both). The access model will be set to RBAC and the service principal will be granted the 'Key Vault Secrets User' role.
 
 First you need to connect to Azure:
->Connect-AzureAccount -TenantID \<yourtenant>
+>Connect-AzAccount -TenantID \<yourtenant>
 
 Download the ADFSBackup_CreateKeyVault.ps1 script and execute it with the required parameters:
 

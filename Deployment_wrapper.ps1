@@ -20,7 +20,7 @@ Select-AzSubscription -SubscriptionID $subscriptionID
 # Run create service Principal script
 $spoutput = .\1_ADFSBackup_CreateServicePrincipal.ps1 -tenantid $TenantID
 $appid = $spoutput[0].substring($spoutput.length-36)
-$certthumb = $spoutput[0].substring($spoutput.length-40)
+$certthumb = $spoutput[1].substring($spoutput.length-40)
 
 # Run create Keyvault script
 $KVScript = .\ADFSBackup_CreateKeyVault.ps1 -rgname $resourceGroup `

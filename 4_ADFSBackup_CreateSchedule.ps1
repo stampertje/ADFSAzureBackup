@@ -94,6 +94,19 @@ if (-not(Test-Path -Path $BackupTargetFolder))
 $BackupScript = {
   # ADFS Backup Script
 
+  [CmdletBinding()]
+  param (
+      # Provide filename or full path to output transcript
+      [Parameter()]
+      [string]
+      $WriteTranscript
+  )
+
+  If($WriteTranscript)
+  {
+    Start-transcript -Append $WriteTranscript
+  }
+
   # Import module 
   try {
       import-module 'C:\Program Files (x86)\ADFS Rapid Recreation Tool\ADFSRapidRecreationTool.dll'
@@ -224,6 +237,11 @@ $BackupScript = {
     }
   }
   #endregion UploadToStorageAccount
+
+  If($WriteTranscript)
+  {
+    Stop-transcript
+  }
 }
 #endregion backupscript
 

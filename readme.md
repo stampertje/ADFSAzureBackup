@@ -13,9 +13,9 @@ In order to create the service principal you will ned to install the AzureAD pow
 
   >Install-Module AzureAD -force
 
-Download the ADFSBackup_CreateServicePrincipal.ps1 script and execute it with the TenantID parameter (mandatory) to specify your tenant. Make sure to start Powershell as Administrator since the certificate will be stored in the computer store.
+Download the 1_ADFSBackup_CreateServicePrincipal.ps1 script and execute it with the TenantID parameter (mandatory) to specify your tenant. Make sure to start Powershell as Administrator since the certificate will be stored in the computer store.
 
-  >.\ADFSBackup_CreateServicePrincipal.ps1 -tenantid <tenantid>
+  >.\1_ADFSBackup_CreateServicePrincipal.ps1 -tenantid <tenantid>
 
 [<img src="./images/appreg.png" />](Appregistrationscreenshot)
 
@@ -39,7 +39,7 @@ First you need to connect to Azure:
 Select the correct subscription to deploy to:
 >Select-AzSubscription -SubscriptionID \<subscription GUID>
 
-Download the ADFSBackup_CreateKeyVault.ps1 script and execute it with the required parameters:
+Download the 2_ADFSBackup_CreateKeyVault.ps1 script and execute it with the required parameters:
 
 - rgname -> Resource Group
 - location -> Azure region
@@ -62,7 +62,7 @@ The storage account will be used to store the ADFS backup. The RRT manages acces
 
 >NOTE I am assuming you are running the scripts in order so you should already have the needed Powershell modules ("Az.KeyVault", "Az.Storage", "Az.Accounts", "Az.Resources").
 
-The ADFSBackup_CreateStorageAccount.ps1 will create a storage account, grant the SP 'Storage Blob Data Contributor' permissions and limit network access. The script will generate the name for the storage account (like it or not).
+The 3_ADFSBackup_CreateStorageAccount.ps1 will create a storage account, grant the SP 'Storage Blob Data Contributor' permissions and limit network access. The script will generate the name for the storage account (like it or not).
 
 The script should be executed with the required parameters:
 
@@ -72,7 +72,7 @@ The script should be executed with the required parameters:
 
 To allow communications to the Key Vault you can use these switches:
 - SAFW_CIDR -> Your public IP address(range)
-- subnet -> The Resource ID of the virtual network subnet.
+- subnetid -> The Resource ID of the virtual network subnet.
 
 [<img src="./images/storage.png" />](storageaccountscreenshot)
 
@@ -80,7 +80,7 @@ The script will show the name of the storage account that you will need in the n
 
 ## Schedule the ADFS backup
 
-This is the final part of the configuration. The ADFSBackup_CreateSchedule.ps1 script will download the ADFS Rapid Restore Tool, install it and create a scheduled task to run the backup.
+This is the final part of the configuration. The 4_ADFSBackup_CreateSchedule.ps1 script will download the ADFS Rapid Restore Tool, install it and create a scheduled task to run the backup.
 
 The script needs a whole bunch of parameters:
 

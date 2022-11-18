@@ -180,7 +180,7 @@ $BackupScript = {
   if ($null -eq (Get-azstoragecontainer -name $containername -context $storageContext -ErrorAction SilentlyContinue))
   {
     try {
-      New-AzStorageContainer -Name $ContainerName -Context $storageContext -Permission Blob 
+      New-AzStorageContainer -Name $ContainerName -Context $storageContext
     }
     catch {
       'Failed to create container in storage account: ' -f $_.exception.message | write-error -ErrorAction Stop
